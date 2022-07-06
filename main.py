@@ -1,7 +1,5 @@
 import asyncio
 import base64
-from heapq import merge
-import html
 import os
 import random
 import re
