@@ -77,7 +77,7 @@ class GPTJ:
             try:
                 return await self.request_text()
             except Exception as e:
-                logging.warn(e)
+                logging.warning(e)
                 await asyncio.sleep(5)
         raise Exception("Unknown error")
 
@@ -100,13 +100,14 @@ class GPTJ:
             max_tokens=200,
             stop=None,
         )
-        url = "https://api.textsynth.com/v1/engines/gptj_6B/completions"
+        url = "https://api.textsynth.com/v1/engines/gptneox_20B/completions"
         headers = {
+            "Host": "api.textsynth.com",
             "Authorization": "Bearer {}".format(api_key),
         }
         try:
             response = await self.client.post(
-                url, json=body, timeout=10, headers=headers
+                url, json=body, timeout=15, headers=headers
             )
         except:
             raise Exception("Request timeout out")
@@ -249,9 +250,9 @@ class TiktokTTS:
     async def request_tts(self, voice: str):
         prompt = self.sanitize_text(self.prompt)
         frames = 0
-        while len(prompt) > 300:
-            index = 300
-            while index >= 0 and (self.prompt[index] not in " \n,\t\r,'"):
+        while len(prompt) > 280:
+            index = 280
+            while index >= 0 and (self.prompt[index] not in " \n,\t\r"):
                 index -= 1
             index += 1
             current_prompt = prompt[0:index]
@@ -308,15 +309,9 @@ class TiktokTTS:
 
 previous = time.time()
 
-
-@events.register(events.MessageEdited)
-async def test(update):
-    print(update.original_update)
-    print(update.message)
-
-
 @events.register(events.NewMessage)
 async def handler(event):
+    #print(event)
     global previous
     now = time.time()
     if now > previous + 50:
@@ -347,9 +342,14 @@ async def handler(event):
     elif event.message.text.startswith("/gpt"):
         parts = event.message.text.split(" ")
         if len(parts) == 1:
-            await event.respond("Please provide a prompt")
-            return
-        prompt = " ".join(parts[1:])
+            if event.original_update.message.reply_to:
+                message = await client.get_messages(event.chat, ids=event.original_update.message.reply_to.reply_to_msg_id)
+                prompt = message.message
+            else:
+                await client.send_message(event.chat_id, "Please provide a prompt")
+                return
+        else:
+            prompt = " ".join(s for s in parts[1:])
         gptj = GPTJ(prompt)
         try:
             result = await gptj.generate()
@@ -405,8 +405,15 @@ async def handler(event):
     elif event.message.text.startswith("/tts"):
         parts = event.message.text.split(" ", 1)
         if len(parts) == 1:
-            await client.send_message(event.chat_id, "Please provide a prompt")
-        tts = TiktokTTS(parts[1])
+            if event.original_update.message.reply_to:
+                message = await client.get_messages(event.chat, ids=event.original_update.message.reply_to.reply_to_msg_id)
+                prompt = message.message
+            else:
+                await client.send_message(event.chat_id, "Please provide a prompt")
+                return
+        else:
+            prompt = parts[1]
+        tts = TiktokTTS(prompt)
         try:
             await tts.generate()
             if len(tts.prompt) > 100:
@@ -433,7 +440,6 @@ client = TelegramClient("gigachud_tg", tg_api_id, tg_api_hash).start(
 )
 
 client.add_event_handler(handler)
-client.add_event_handler(test)
 
 print("(Press Ctrl+C to stop this)")
 try:
