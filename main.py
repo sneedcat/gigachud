@@ -223,7 +223,7 @@ class TiktokTTS:
                 logging.warning(e)
                 await asyncio.sleep(5)
         raise Exception("Couldn't create the tts file")
-    
+
     def sanitize_text(self, text: str) -> str:
         r"""Sanitizes the text for tts.
             What gets removed:
@@ -309,9 +309,10 @@ class TiktokTTS:
 
 previous = time.time()
 
+
 @events.register(events.NewMessage)
 async def handler(event):
-    #print(event)
+    # print(event)
     global previous
     now = time.time()
     if now > previous + 50:
@@ -343,7 +344,10 @@ async def handler(event):
         parts = event.message.text.split(" ")
         if len(parts) == 1:
             if event.original_update.message.reply_to:
-                message = await client.get_messages(event.chat, ids=event.original_update.message.reply_to.reply_to_msg_id)
+                message = await client.get_messages(
+                    event.chat,
+                    ids=event.original_update.message.reply_to.reply_to_msg_id,
+                )
                 prompt = message.message
             else:
                 await client.send_message(event.chat_id, "Please provide a prompt")
@@ -406,7 +410,10 @@ async def handler(event):
         parts = event.message.text.split(" ", 1)
         if len(parts) == 1:
             if event.original_update.message.reply_to:
-                message = await client.get_messages(event.chat, ids=event.original_update.message.reply_to.reply_to_msg_id)
+                message = await client.get_messages(
+                    event.chat,
+                    ids=event.original_update.message.reply_to.reply_to_msg_id,
+                )
                 prompt = message.message
             else:
                 await client.send_message(event.chat_id, "Please provide a prompt")
